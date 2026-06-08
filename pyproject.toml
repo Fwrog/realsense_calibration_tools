@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "realsense-calibration-tools"
+version = "0.1.0"
+description = "Minimal printable-target and RealSense D435i calibration toolkit."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "RealSense Calibration Tools contributors" }
+]
+dependencies = [
+  "numpy",
+  "PyYAML",
+  "Pillow",
+  "matplotlib",
+  "opencv-contrib-python",
+  "pyrealsense2",
+  "reportlab",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

@@ -1,0 +1,16 @@
+name: rs_calib
+channels:
+  - conda-forge
+variables:
+  PYTHONNOUSERSITE: "1"
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - pyyaml
+  - pillow
+  - matplotlib
+  - pip:
+      - opencv-contrib-python
+      - pyrealsense2
+      - reportlab

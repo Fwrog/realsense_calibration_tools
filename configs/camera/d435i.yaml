@@ -1,0 +1,10 @@
+camera_id: d435i
+color_width: 1280
+color_height: 720
+depth_width: 848
+depth_height: 480
+fps: 30
+align_depth_to: color
+warmup_frames: 30
+notes: "Factory intrinsics and extrinsics are exported from the RealSense SDK."
+
