@@ -188,5 +188,10 @@ tests/        Reserved for lightweight smoke tests
 ## 📝 To-Do, Not Implemented Yet
 
 
-- [ ] Integrate optional YOLO / Ultralytics-assisted target finding
-- [ ] Use OpenCV ArUco detection for marker-based capture assistance
+- [ ] Integrate YOLO / Ultralytics for field target detection assistance
+- [ ] Use OpenCV ArUco detection as a lightweight alternative to YOLO for marker-based capture assistance
+- [ ] Export fixed-interval RGB-D frame packages automatically
+- [ ] Add lightweight smoke tests for script arguments, config parsing, and report generation
+- [ ] Add a fully anonymized example calibration package with placeholder serial numbers
+
+The principle is restraint: make calibration reliable first, then consider detection, measurement, and reconstruction.
