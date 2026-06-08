@@ -4,7 +4,6 @@ A lightweight, GitHub-ready toolkit for RealSense D435i calibration workflows.
 
 The goal is simple: generate printable calibration targets, export RealSense factory parameters, calibrate the color camera with OpenCV ChArUco, inspect RGB-D depth-to-color alignment, and produce a compact calibration package.
 
-This is not a large vision framework. It does not currently include YOLO, defect detection, TSDF, 3D reconstruction, or depth enhancement.
 
 ## ✅ What It Does
 
@@ -19,13 +18,6 @@ This is not a large vision framework. It does not currently include YOLO, defect
 - 🌈 Uses RealSense SDK `rs.align(rs.stream.color)` for RGB-D alignment QC previews
 - 📦 Creates a calibration package and HTML report
 
-## 🚫 What It Does Not Do Yet
-
-- No YOLO / Ultralytics detection
-- No concrete defect detection
-- No TSDF or 3D reconstruction
-- No depth enhancement
-- No RealSense depth-module firmware-level recalibration
 
 Important boundary: OpenCV ChArUco calibration here estimates the software-level **color camera intrinsics**. It does not recalibrate the RealSense depth module.
 
@@ -193,22 +185,8 @@ outputs/      Local calibration package and QC previews, ignored by Git
 tests/        Reserved for lightweight smoke tests
 ```
 
-## 🧼 Privacy and GitHub Hygiene
-
-- `external/` is ignored. No full OpenCV or librealsense checkout is required.
-- `data/calibration_images/` is ignored.
-- `outputs/calibration/` and `outputs/qc/` are ignored.
-- `.bag`, `.npy`, point clouds, logs, and local config files are ignored.
-- The public README and docs do not include real device serial numbers, personal names, locations, or timestamps.
-
 ## 📝 To-Do, Not Implemented Yet
 
-Future ideas, intentionally not part of the current implementation:
 
 - [ ] Integrate YOLO / Ultralytics for field target detection assistance
-- [ ] Use OpenCV ArUco detection as a lightweight alternative to YOLO for marker-based capture assistance
-- [ ] Export fixed-interval RGB-D frame packages automatically
-- [ ] Add lightweight smoke tests for script arguments, config parsing, and report generation
-- [ ] Add a fully anonymized example calibration package with placeholder serial numbers
-
-The principle is restraint: make calibration reliable first, then consider detection, measurement, and reconstruction.
+- [ ] Use OpenCV ArUco detection for marker-based capture assistance
