@@ -10,5 +10,4 @@ marker_size_mm_measured: null
 margin_mm: 12
 spacing_mm: 18
 cuttable: true
-notes: "Cuttable local reference markers for field data collection near concrete defects."
-
+notes: "Cuttable local reference markers for scale and pose context in a capture scene."

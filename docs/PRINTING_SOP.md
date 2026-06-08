@@ -5,8 +5,8 @@
 - A4 ChArUco board: main board for RealSense color camera calibration and DSLR
   intrinsic calibration. Do not cut it.
 - A4 checkerboard: backup traditional OpenCV calibration board. Do not cut it.
-- A4 ArUco marker sheet: cuttable local reference markers for field scale and
-  pose context near concrete defects.
+- A4 ArUco marker sheet: cuttable local reference markers for scale and pose
+  context in a capture scene.
 
 ## Print Settings
 
@@ -33,10 +33,10 @@
 2. Do not use wrinkled paper, soft paper, or a warped sheet as the main
    calibration target.
 3. Do not split the main calibration board into pieces.
-4. ArUco markers may be cut and placed near field defects, but they should not
-   cover cracks, spalling, or other target evidence.
-5. Place field ArUco markers as close as practical to the same plane as the
-   inspected wall or surface.
+4. ArUco markers may be cut and placed near reference points in the scene, but
+   each marker should stay fully visible and unobstructed.
+5. Place ArUco markers as close as practical to the same plane as the measured
+   surface.
 6. Capture one record image showing the target board and a physical ruler.
 
 ## Capture Guidance
