@@ -1,284 +1,93 @@
-# RealSense Calibration Tools ✨
+# RealSense Calibration Tools
 
-A marker-guided toolkit for RealSense D435i calibration workflows: live inspection,
-automatic diverse-view capture, software color calibration, and local RGB-D diagnostics.
+**From a printed ChArUco board to a reviewable calibration result.**
 
-## 📷 Real-device demo · 实机展示
+Marker-guided capture, color-camera calibration and RGB-D diagnostics for RealSense D435i.
+Automatic frame selection. Local reports. No firmware changes.
 
-2026-09-24，使用实际连接的 **RealSense D435i** 和 **5 × 7 ChArUco 棋盘**完成
-自动采集与彩色内参求解。图像分辨率为 **1280 × 720**；实测方格 **24 mm**、
-marker **12 mm**，字典为 `DICT_5X5_100`。完整棋盘的 **17 个 marker / 24 个内角点**均成功识别。
+[Quick start](#quick-start) · [Demo data](docs/demo/d435i_charuco_results.json) · [User guide](docs/AUTOMATIC_CALIBRATION.md) · [MIT license](LICENSE)
 
-```text
-实机画面 → ChArUco 检测 → 清晰度 / 稳定性 / 姿态去重
-         → 25 个采集视角 → 20 张拟合 + 5 张留出 → 本地报告
-```
+## Real-device demo
 
-| 本次实测指标 | 结果 |
-|---|---:|
-| 自动保存的不同视角 | 25 |
-| 内参拟合 / 留出检查 | 20 / 5 |
-| 拟合重投影 RMS | 0.263 px |
-| 留出视角平均 RMS：标定候选 | **0.179 px** |
-| 同组留出视角平均 RMS：工厂内参 | 0.306 px |
+![Actual D435i camera frame with detected ChArUco markers and corners](docs/demo/charuco_detection.png)
 
-<details>
-<summary>展开查看 5 个留出视角的逐项对比</summary>
+*Actual camera capture, with detection overlays. All 17 markers and 24 inner corners detected.*
 
-| 留出图像 | 工厂内参 RMS (px) | 标定候选 RMS (px) |
-|---|---:|---:|
-| view_0000 | 0.129 | 0.146 |
-| view_0006 | 0.070 | 0.059 |
-| view_0012 | 0.140 | 0.123 |
-| view_0018 | 0.844 | 0.319 |
-| view_0024 | 0.346 | 0.250 |
+One session at **1280 × 720**, using a **5 × 7 ChArUco board** with measured
+**24 mm squares / 12 mm markers**.
 
-候选结果在 4/5 个留出视角上误差较低，并非每个视角都改善。
-表中平均值为逐视角 RMS 的算术平均，非所有角点合并后的 RMS。
+![Mean and per-view held-out reprojection errors](docs/demo/reprojection_comparison.png)
 
-</details>
+**25 captured views → 20 fitting views + 5 held-out views.** Training RMS: **0.263 px**.
+Mean held-out RMS: **0.179 px** for the candidate versus **0.306 px** for factory intrinsics;
+lower in **4 of 5** views. [Source data](docs/demo/d435i_charuco_results.json)
 
-**结果边界：**这是一次真实采集的示例，不是通用性能基准。留出图像未参与该候选内参拟合，
-但每个视角的位姿仍分别拟合；像素重投影误差不等于毫米级测量精度，也不代表深度模块已校准。
-相机固件与工厂参数未被修改，结果状态保留为 `calibration_candidate_needs_validation`。
+*Single-session demonstration, not an accuracy certification. Poses are refitted on held-out views.
+Pixel reprojection error is not metric depth accuracy.*
 
-[查看脱敏 Demo 数据（JSON）](docs/demo/d435i_charuco_results.json)。
-公开内容仅包含汇总指标与匿名视角编号，不包含序列号、本机路径、现场照片或原始深度。
+## What it does
 
-## 自动标定 · Quick start
+- **Prepare:** generate printable ChArUco, checkerboard and ArUco targets.
+- **Inspect:** export factory parameters, detect the board and check pose/depth consistency.
+- **Capture:** select sharp, stable views and reject near-duplicate poses.
+- **Calibrate:** fit color intrinsics, evaluate held-out views and export JSON + HTML reports.
 
-**自动化的是检测、筛图、求解和报告；不同视角仍需人工移动相机或标定板。**
-固定机位反复采集不等于完成内参标定。所有结果只写入本地，不修改相机固件。
+You move the camera or board; the tool handles detection and capture.
+It does not recalibrate the depth module or overwrite device calibration.
 
-After the environment setup below, run from this repository:
+## Quick start
 
-```powershell
-# Inspect the connected device and board; save RGB, depth, pose and HTML report
-conda run --no-capture-output -n rs_calib python scripts/run_calib.py --mode inspect --seconds 10
+### 1. Install
 
-# Measure the printed board and update the measured dimensions in its YAML first.
-# Move the camera/board; hold each different view still for about 2 seconds.
-conda run --no-capture-output -n rs_calib python scripts/run_calib.py --mode auto --seconds 180 --views 25 --preview --confirm-board-size
-```
-
-Each run creates a new, non-overwriting `outputs/sessions/<timestamp>/` directory:
-
-| Artifact | Meaning |
-|---|---|
-| `factory.json`, `board.yaml` | Device parameters and exact board configuration snapshot |
-| `color.png`, `detection.png`, `aligned_depth.npy` | Best detected inspection frame and aligned raw depth |
-| `images/`, `capture.json` | Accepted calibration views and quality/novelty measurements |
-| `color_intrinsics.json` | Software calibration candidate, when enough views are collected |
-| `summary.json`, `report.html` | Completion state, pose, diagnostics, limitations |
-
-Automatic capture requires at least 12 detected corners, a sharp board region,
-a stable pose, and a sufficiently different projected board footprint. These are
-engineering heuristics, not a guarantee of calibration observability. Cover edges,
-center, several distances and **out-of-plane tilts**, not just in-plane translation.
-About 20% of accepted views are held out of the intrinsic fit; their poses are refitted
-for a held-out reprojection diagnostic. A candidate is **not** automatically certified
-as better than factory calibration. See [workflow and interpretation](docs/AUTOMATIC_CALIBRATION.md).
-
-`rs-calib` is also available after `pip install -e .`; configuration paths are relative
-to the working directory unless supplied explicitly. Exit code `2` means acquisition
-or board confirmation is incomplete, not success. `--preview` opens an interactive window;
-omit it for a headless run. `Q` stops acquisition and preserves accepted images.
-
-The goal is simple: generate printable calibration targets, export RealSense factory parameters, calibrate the color camera with OpenCV ChArUco, inspect RGB-D depth-to-color alignment, and produce a compact calibration package.
-
-
-## ✅ What It Does
-
-- 🎯 Generates printable A4 targets:
-  - ChArUco board: the main calibration board, not cuttable
-  - Checkerboard: traditional OpenCV backup board, not cuttable
-  - ArUco marker sheet: cuttable field reference markers
-- 📷 Exports RealSense D435i factory intrinsics, extrinsics, and depth scale
-- 🖼️ Captures RealSense color calibration images
-- 🤖 Automatically selects sharp, stable, non-duplicate ChArUco views
-- 📐 Estimates board-to-color pose using factory intrinsics and checks local depth consistency
-- 🧮 Calibrates RealSense color camera intrinsics with OpenCV ChArUco
-- ✨ Generates color-camera undistortion previews
-- 🌈 Uses RealSense SDK `rs.align(rs.stream.color)` for RGB-D alignment QC previews
-- 📦 Creates a calibration package and HTML report
-
-
-Important boundary: OpenCV ChArUco calibration here estimates the software-level **color camera intrinsics**. It does not recalibrate the RealSense depth module.
-
-## 🧰 Setup
-
-Use a dedicated Conda environment. Avoid mixing this toolkit with YOLO, reconstruction, or other experiment environments.
-
-```powershell
+```bash
 conda env create -f environment.yml
 conda activate rs_calib
 pip install -e .
 ```
 
-If the environment already exists:
+### 2. Prepare the board
 
-```powershell
-conda env update -f environment.yml --prune
-conda activate rs_calib
-pip install -e .
+[Download the printable board](assets/patterns/charuco_A4_7x5_25mm.pdf), print at actual size,
+and mount it flat. Enter **measured** square/marker dimensions in
+[`configs/boards/charuco_A4_7x5_25mm.yaml`](configs/boards/charuco_A4_7x5_25mm.yaml).
+The demo's 24 / 12 mm dimensions apply only to its measured print. [Printing guide](docs/PRINTING_SOP.md)
+
+### 3. Inspect and capture
+
+Run from the repository root with the environment activated:
+
+```bash
+python scripts/run_calib.py --mode inspect --seconds 10
+python scripts/run_calib.py --mode auto --seconds 180 --views 25 --preview --confirm-board-size
 ```
 
-Check the environment:
+Move across the image, vary distance and tilt, and hold each pose still for about two seconds.
+Use `--confirm-board-size` only after checking the measured dimensions. Press **Q** to stop;
+omit `--preview` for headless capture. A stationary setup is not enough for intrinsic calibration.
 
-```powershell
-conda run -n rs_calib python -c "import cv2, reportlab, pyrealsense2; print(cv2.__version__)"
+## Outputs
+
+Each run creates a separate `outputs/sessions/<timestamp>/` directory:
+
+| Files | Contents |
+|---|---|
+| `factory.json`, `board.yaml` | Device parameters and board configuration |
+| `images/`, `capture.json` | Selected views and capture-quality records |
+| `color_intrinsics.json` | Calibration candidate and held-out diagnostics |
+| `summary.json`, `report.html` | Status, board pose and depth consistency |
+
+Incomplete capture returns exit code `2`; successful fitting remains a **candidate needing validation**.
+Raw sessions, serial numbers and calibration packages stay Git-ignored. This demo publishes only
+an approved detection image and anonymized metrics.
+
+## Documentation & development
+
+[Automatic workflow](docs/AUTOMATIC_CALIBRATION.md) · [Manual workflow](docs/REALSENSE_SOP.md) · [Output schema](docs/OUTPUT_SCHEMA.md)
+
+```bash
+python -m unittest discover -s tests -v
+python docs/demo/render_demo.py
 ```
 
-`pyrealsense2` wheels are platform-specific. If installation fails, install the Intel RealSense SDK first, then retry the environment setup.
-
-## 🚀 Typical Workflow
-
-Run commands from the repository root.
-
-### 1. Generate Printable Targets
-
-```powershell
-conda run -n rs_calib python scripts\01_generate_patterns.py
-```
-
-Outputs:
-
-```text
-assets/patterns/
-```
-
-Each target is generated as `.svg`, `.pdf`, and `.png`. SVG is the preferred print source, PDF is the convenient print fallback, and PNG is mainly for preview.
-
-### 2. Print and Measure
-
-Before calibration:
-
-- ✅ Print at 100% Actual Size
-- ❌ Do not use Fit to page
-- ❌ Do not scale or shrink oversized pages
-- ❌ Do not crop the white border
-- ✅ Measure the printed square and marker sizes with a ruler or caliper
-- ✅ Write measured values back into `configs/boards/*.yaml`
-
-Do not cut the main ChArUco board or checkerboard. The ArUco marker sheet can be cut and placed near reference points in a scene, but each marker should stay fully visible and unobstructed.
-
-See:
-
-```text
-docs/PRINTING_SOP.md
-```
-
-### 3. Export RealSense Factory Parameters
-
-Requires a connected RealSense D435i.
-
-```powershell
-conda run -n rs_calib python scripts\02_export_realsense_intrinsics.py
-```
-
-Output:
-
-```text
-outputs/calibration/d435i_factory_intrinsics_extrinsics.json
-```
-
-`outputs/` is ignored by Git to avoid committing real device serial numbers or local calibration data.
-
-### 4. Capture Color Calibration Images
-
-Requires a printed and mounted ChArUco board.
-
-```powershell
-conda run -n rs_calib python scripts\03_capture_color_calib_images.py
-```
-
-- `SPACE` saves an image
-- `ESC` / `q` exits
-- Default output: `data/calibration_images/d435i_color_charuco/`
-
-Recommended capture count: 30-60 images covering the image center, corners, and edges, with multiple board tilts.
-
-### 5. Run OpenCV ChArUco Calibration
-
-```powershell
-conda run -n rs_calib python scripts\04_calibrate_color_charuco.py
-```
-
-Outputs:
-
-```text
-outputs/calibration/d435i_color_opencv_charuco_intrinsics.json
-outputs/qc/charuco_detection_preview/
-outputs/qc/color_undistort_preview/
-```
-
-If fewer than 10 valid images are detected, the script fails clearly instead of pretending calibration succeeded.
-
-### 6. Check RGB-D Alignment
-
-```powershell
-conda run -n rs_calib python scripts\05_check_rgbd_alignment.py
-```
-
-- `SPACE` saves color, aligned depth, and overlay preview
-- `ESC` / `q` exits
-- The overlay is a visual QC preview. Inspect object edges manually for obvious depth-to-color misalignment.
-
-### 7. Make Report
-
-```powershell
-conda run -n rs_calib python scripts\06_make_report.py
-```
-
-Outputs:
-
-```text
-outputs/calibration/calibration_summary.json
-outputs/calibration/calibration_report.html
-```
-
-The report can still be generated before device capture; it will include warnings for missing calibration artifacts.
-
-## 📦 Calibration Package
-
-The final local calibration package is written to:
-
-```text
-outputs/calibration/
-```
-
-Typical files:
-
-- `d435i_factory_intrinsics_extrinsics.json`
-- `d435i_color_opencv_charuco_intrinsics.json`
-- `calibration_summary.json`
-- `calibration_report.html`
-
-These files may contain machine-specific or device-specific data, so they are ignored by Git.
-
-## 🗂️ Project Layout
-
-```text
-configs/      Board and camera YAML configs
-assets/       Printable SVG/PDF/PNG patterns
-scripts/      Six runnable workflow scripts
-src/          Core Python package: rs_calib_tools
-docs/         SOP and output schema notes
-data/         Local captured images, ignored by Git
-outputs/      Local calibration package and QC previews, ignored by Git
-tests/        Synthetic detection, pose, data-integrity and report tests
-```
-
-## Testing and scope
-
-```powershell
-conda run -n rs_calib python -m unittest discover -s tests -v
-```
-
-GitHub Actions runs synthetic/software tests. It does not access a physical camera.
-Real captures, serial numbers, local reports and measured calibration packages stay
-Git-ignored. Share them only after an explicit privacy review.
-
-Not implemented: depth-module/firmware self-calibration, multi-camera extrinsic
-calibration, robot hand-eye calibration, or automatic mechanical board movement.
-No neural detector is needed for this known ChArUco pattern.
+Tests cover synthetic detection, pose, holdout separation and data integrity; CI does not use a physical camera.
+The demo chart is regenerated directly from the published JSON.
