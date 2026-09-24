@@ -16,11 +16,13 @@ dependencies = [
   "numpy",
   "PyYAML",
   "Pillow",
-  "matplotlib",
   "opencv-contrib-python>=4.8,<5",
   "pyrealsense2",
   "reportlab",
 ]
+
+[project.optional-dependencies]
+demo = ["matplotlib"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

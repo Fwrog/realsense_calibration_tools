@@ -9,18 +9,18 @@ Automatic frame selection. Local reports. No firmware changes.
 
 ## Real-device demo
 
-![Actual D435i camera frame with detected ChArUco markers and corners](docs/demo/charuco_detection.png)
+<img src="docs/demo/report_preview.png" alt="Unified session report with real detection, key metrics and held-out errors" width="680">
 
-*Actual camera capture, with detection overlays. All 17 markers and 24 inner corners detected.*
+*The same compact report is generated for every session. All 17 markers and 24 inner corners were detected in this demo.*
 
 One session at **1280 × 720**, using a **5 × 7 ChArUco board** with measured
 **24 mm squares / 12 mm markers**.
 
-![Mean and per-view held-out reprojection errors](docs/demo/reprojection_comparison.png)
-
 **25 captured views → 20 fitting views + 5 held-out views.** Training RMS: **0.263 px**.
 Mean held-out RMS: **0.179 px** for the candidate versus **0.306 px** for factory intrinsics;
 lower in **4 of 5** views. [Source data](docs/demo/d435i_charuco_results.json)
+
+[Detection image](docs/demo/charuco_detection.png) · [Comparison chart](docs/demo/reprojection_comparison.png)
 
 *Single-session demonstration, not an accuracy certification. Poses are refitted on held-out views.
 Pixel reprojection error is not metric depth accuracy.*
@@ -76,6 +76,10 @@ Each run creates a separate `outputs/sessions/<timestamp>/` directory:
 | `color_intrinsics.json` | Calibration candidate and held-out diagnostics |
 | `summary.json`, `report.html` | Status, board pose and depth consistency |
 
+The HTML report shows the detection image, key metrics, per-view errors and next action;
+full details stay collapsed. The terminal prints a short result summary and report path.
+Rebuild it without a camera: `python scripts/run_calib.py --mode report --session outputs/sessions/SESSION`.
+
 Incomplete capture returns exit code `2`; successful fitting remains a **candidate needing validation**.
 Raw sessions, serial numbers and calibration packages stay Git-ignored. This demo publishes only
 an approved detection image and anonymized metrics.
@@ -86,6 +90,7 @@ an approved detection image and anonymized metrics.
 
 ```bash
 python -m unittest discover -s tests -v
+pip install -e ".[demo]"  # Optional chart-rendering dependency
 python docs/demo/render_demo.py
 ```
 

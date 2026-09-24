@@ -7,8 +7,9 @@ import cv2
 import numpy as np
 
 from rs_calib_tools.automatic import (
-    board_pose, depth_consistency, detect_board, novel_view, view_descriptor, write_session_report,
+    board_pose, depth_consistency, detect_board, novel_view, view_descriptor,
 )
+from rs_calib_tools.report import write_session_report
 from rs_calib_tools.calibration import create_charuco_board, calibrate_color_camera_charuco
 
 

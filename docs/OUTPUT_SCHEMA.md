@@ -1,49 +1,43 @@
-# Output Schema
+# Session outputs
 
-## d435i_factory_intrinsics_extrinsics.json
+The main workflow writes only to `outputs/sessions/<timestamp>/`.
+`summary.json` is the report's source of truth; `report.html` is its compact, human-readable view.
+Rebuilding a report reads that session only and never accesses the camera or reruns calibration.
 
-- `device`: RealSense device name, serial number, firmware version, product
-  line, and SDK version when available.
-- `streams.color`: color stream width, height, fps, format, and intrinsics.
-- `streams.depth`: depth stream width, height, fps, format, intrinsics, and
-  depth scale.
-- `extrinsics.depth_to_color`: rotation matrix and translation vector from
-  depth to color.
-- `extrinsics.color_to_depth`: rotation matrix and translation vector from
-  color to depth.
+| Artifact | Contents |
+|---|---|
+| `factory.json` | Device identity, stream intrinsics, extrinsics and depth scale |
+| `board.yaml` | Snapshot of the measured board configuration |
+| `images/`, `capture.json` | Accepted images and quality/pose records |
+| `color.png`, `detection.png`, `aligned_depth.npy` | Best inspection frame, detection overlay and aligned raw depth |
+| `color_intrinsics.json` | Intrinsic fit, training image list and held-out errors |
+| `summary.json`, `report.html` | Session state, metrics, diagnostics, warnings and next action |
 
-## d435i_color_opencv_charuco_intrinsics.json
+## Summary fields
 
-- `method`: `opencv_charuco`.
-- `square_length_m`: square length used by OpenCV, in metres.
-- `marker_length_m`: marker length used by OpenCV, in metres.
-- `K`: 3x3 OpenCV camera matrix for the color camera.
-- `distortion`: OpenCV distortion coefficients.
-- `rms_reprojection_error_px`: ChArUco calibration RMS reprojection error.
-- `image_size`: `[width, height]`.
-- `num_images_used`: number of accepted calibration images.
-- `num_images_rejected`: number of rejected images.
-- `used_images`: accepted image paths.
-- `rejected_images`: rejected image paths with reasons.
-- `warnings`: calibration warnings such as use of nominal board sizes.
+- `status`: inspection, incomplete, failed, interrupted, or calibration candidate; never implicit certification.
+- `accepted_views`, `best_corner_count`, `physical_size_confirmed`: acquisition evidence.
+- `intrinsics_recalibrated`, `firmware_modified`: distinguish software fitting from device changes.
+- `calibration_metrics`: training RMS, held-out mean RMS, `num_images_used` (training views only),
+  `heldout_views` (`path`, `rms_px`), and the validation scope. Absent before a successful fit.
+- Optional measured comparison: `heldout_factory_mean_rms_px` and per-view `factory_rms_px`.
+  The report displays these only when supplied; it does not invent or recompute a factory baseline.
+- `board_pose`, `depth_consistency`: factory-based pose and single-view depth diagnostics.
+- `warnings`, `error`: caveats and failure details, preserved in the compact report and JSON.
 
-## calibration_summary.json
+The HTML shows the detection image, key metrics, per-view error bars, caveats and next action.
+Full details are collapsed by default. Missing metrics read **Not available**, not zero.
+Each final capture record and report is written once, including on recoverable Python exceptions.
 
-Compact package status for downstream RGB-D projects:
+## Rebuild a report
 
-- pattern SVG/PDF/PNG presence;
-- factory metadata present or missing;
-- OpenCV ChArUco calibration present or missing;
-- RMS reprojection error when available;
-- used and rejected image counts;
-- color undistortion preview count;
-- RGB-D alignment preview count;
-- warnings.
+```bash
+python scripts/run_calib.py --mode report --session outputs/sessions/SESSION
+```
 
-## QC previews
+`python scripts/06_make_report.py --session outputs/sessions/SESSION` calls the same renderer.
+The former `--output-dir` / `--qc-dir` report interface is replaced by `--session`.
+Existing legacy files are not deleted or automatically merged into a session.
 
-- `outputs/qc/charuco_detection_preview/`: accepted ChArUco detection overlays.
-- `outputs/qc/color_undistort_preview/`: before/after/compare previews for
-  OpenCV color-camera lens undistortion.
-- `outputs/qc/rgbd_alignment_preview/`: RealSense SDK depth-to-color alignment
-  QC previews and raw aligned depth arrays.
+These outputs can contain device serial numbers, local paths and scene images. Keep them local
+unless explicitly reviewed for publication. Public demo results are a separate, anonymized export.

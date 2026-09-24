@@ -67,6 +67,12 @@ inspection RGB/depth frames, selected images, capture records and a JSON/HTML re
 Successful fitting adds `color_intrinsics.json`, detection and undistortion previews.
 No parameters are written to device firmware.
 
+The HTML report presents detection, key metrics, held-out error bars and the next action;
+full JSON details are collapsed. The terminal prints a short summary rather than the whole JSON.
+To rebuild from saved results without a camera, use
+`python scripts/run_calib.py --mode report --session outputs/sessions/SESSION`.
+Automatic runs and the optional script 06 use the same renderer and [session schema](OUTPUT_SCHEMA.md).
+
 Raw sessions, serial numbers and machine-specific outputs remain local and Git-ignored.
 The public demo includes an explicitly approved detection image and anonymized metrics.
 Tests use synthetic boards.

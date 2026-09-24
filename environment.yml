@@ -9,7 +9,6 @@ dependencies:
   - numpy
   - pyyaml
   - pillow
-  - matplotlib
   - pip:
       - opencv-contrib-python>=4.8,<5
       - pyrealsense2
