@@ -8,6 +8,10 @@ data/**/*.avi
 
 outputs/calibration/
 outputs/qc/
+outputs/sessions/
+build/
+dist/
+*.egg-info/
 
 __pycache__/
 .pytest_cache/

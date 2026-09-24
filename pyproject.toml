@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "realsense-calibration-tools"
-version = "0.1.0"
-description = "Minimal printable-target and RealSense D435i calibration toolkit."
+version = "0.2.0"
+description = "Marker-guided RealSense calibration, automatic capture and RGB-D diagnostics."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -17,7 +17,7 @@ dependencies = [
   "PyYAML",
   "Pillow",
   "matplotlib",
-  "opencv-contrib-python",
+  "opencv-contrib-python>=4.8,<5",
   "pyrealsense2",
   "reportlab",
 ]
@@ -25,3 +25,5 @@ dependencies = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[project.scripts]
+rs-calib = "rs_calib_tools.automatic:main"

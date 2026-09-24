@@ -11,6 +11,6 @@ dependencies:
   - pillow
   - matplotlib
   - pip:
-      - opencv-contrib-python
+      - opencv-contrib-python>=4.8,<5
       - pyrealsense2
       - reportlab

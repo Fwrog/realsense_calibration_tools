@@ -1,6 +1,46 @@
 # RealSense Calibration Tools ✨
 
-A lightweight, GitHub-ready toolkit for RealSense D435i calibration workflows.
+A marker-guided toolkit for RealSense D435i calibration workflows: live inspection,
+automatic diverse-view capture, software color calibration, and local RGB-D diagnostics.
+
+## 自动标定 · Quick start
+
+**自动化的是检测、筛图、求解和报告；不同视角仍需人工移动相机或标定板。**
+固定机位反复采集不等于完成内参标定。所有结果只写入本地，不修改相机固件。
+
+After the environment setup below, run from this repository:
+
+```powershell
+# Inspect the connected device and board; save RGB, depth, pose and HTML report
+conda run --no-capture-output -n rs_calib python scripts/run_calib.py --mode inspect --seconds 10
+
+# Measure the printed board and update the measured dimensions in its YAML first.
+# Move the camera/board; hold each different view still for about 2 seconds.
+conda run --no-capture-output -n rs_calib python scripts/run_calib.py --mode auto --seconds 180 --views 25 --preview --confirm-board-size
+```
+
+Each run creates a new, non-overwriting `outputs/sessions/<timestamp>/` directory:
+
+| Artifact | Meaning |
+|---|---|
+| `factory.json`, `board.yaml` | Device parameters and exact board configuration snapshot |
+| `color.png`, `detection.png`, `aligned_depth.npy` | Best detected inspection frame and aligned raw depth |
+| `images/`, `capture.json` | Accepted calibration views and quality/novelty measurements |
+| `color_intrinsics.json` | Software calibration candidate, when enough views are collected |
+| `summary.json`, `report.html` | Completion state, pose, diagnostics, limitations |
+
+Automatic capture requires at least 12 detected corners, a sharp board region,
+a stable pose, and a sufficiently different projected board footprint. These are
+engineering heuristics, not a guarantee of calibration observability. Cover edges,
+center, several distances and **out-of-plane tilts**, not just in-plane translation.
+About 20% of accepted views are held out of the intrinsic fit; their poses are refitted
+for a held-out reprojection diagnostic. A candidate is **not** automatically certified
+as better than factory calibration. See [workflow and interpretation](docs/AUTOMATIC_CALIBRATION.md).
+
+`rs-calib` is also available after `pip install -e .`; configuration paths are relative
+to the working directory unless supplied explicitly. Exit code `2` means acquisition
+or board confirmation is incomplete, not success. `--preview` opens an interactive window;
+omit it for a headless run. `Q` stops acquisition and preserves accepted images.
 
 The goal is simple: generate printable calibration targets, export RealSense factory parameters, calibrate the color camera with OpenCV ChArUco, inspect RGB-D depth-to-color alignment, and produce a compact calibration package.
 
@@ -13,6 +53,8 @@ The goal is simple: generate printable calibration targets, export RealSense fac
   - ArUco marker sheet: cuttable field reference markers
 - 📷 Exports RealSense D435i factory intrinsics, extrinsics, and depth scale
 - 🖼️ Captures RealSense color calibration images
+- 🤖 Automatically selects sharp, stable, non-duplicate ChArUco views
+- 📐 Estimates board-to-color pose using factory intrinsics and checks local depth consistency
 - 🧮 Calibrates RealSense color camera intrinsics with OpenCV ChArUco
 - ✨ Generates color-camera undistortion previews
 - 🌈 Uses RealSense SDK `rs.align(rs.stream.color)` for RGB-D alignment QC previews
@@ -182,11 +224,19 @@ src/          Core Python package: rs_calib_tools
 docs/         SOP and output schema notes
 data/         Local captured images, ignored by Git
 outputs/      Local calibration package and QC previews, ignored by Git
-tests/        Reserved for lightweight smoke tests
+tests/        Synthetic detection, pose, data-integrity and report tests
 ```
 
-## 📝 To-Do, Not Implemented Yet
+## Testing and scope
 
+```powershell
+conda run -n rs_calib python -m unittest discover -s tests -v
+```
 
-- [ ] Integrate YOLO / Ultralytics for field target detection assistance
-- [ ] Use OpenCV ArUco detection as a lightweight alternative to YOLO for marker-based capture assistance
+GitHub Actions runs synthetic/software tests. It does not access a physical camera.
+Real captures, serial numbers, local reports and measured calibration packages stay
+Git-ignored. Share them only after an explicit privacy review.
+
+Not implemented: depth-module/firmware self-calibration, multi-camera extrinsic
+calibration, robot hand-eye calibration, or automatic mechanical board movement.
+No neural detector is needed for this known ChArUco pattern.

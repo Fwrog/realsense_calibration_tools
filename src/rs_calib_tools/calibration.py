@@ -23,6 +23,10 @@ def create_charuco_board(config: dict[str, Any]):
     marker_m = marker_size_mm / 1000.0
     squares_x = int(config["squares_x"])
     squares_y = int(config["squares_y"])
+    if not (np.isfinite(square_m) and np.isfinite(marker_m) and 0 < marker_m < square_m):
+        raise ValueError("Board sizes must be finite and satisfy 0 < marker < square.")
+    if squares_x < 3 or squares_y < 3:
+        raise ValueError("ChArUco board must have at least 3 x 3 squares.")
 
     if hasattr(aruco, "CharucoBoard"):
         try:
@@ -40,6 +44,7 @@ def calibrate_color_camera_charuco(
     output_json: str | Path,
     preview_dir: str | Path,
     undistort_preview_dir: str | Path | None = None,
+    holdout_count: int = 0,
 ) -> Path:
     image_path = Path(image_dir)
     config = load_board_config(board_config_path)
@@ -80,7 +85,10 @@ def calibrate_color_camera_charuco(
             rejected_images.append({"path": str(path), "reason": "failed_to_read"})
             continue
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        image_size = (gray.shape[1], gray.shape[0])
+        current_size = (gray.shape[1], gray.shape[0])
+        if image_size is not None and image_size != current_size:
+            raise ValueError(f"Mixed image resolutions: {path} is {current_size}, expected {image_size}.")
+        image_size = current_size
 
         marker_corners, marker_ids = _detect_markers(gray, dictionary)
         if marker_ids is None or len(marker_ids) == 0:
@@ -93,8 +101,11 @@ def calibrate_color_camera_charuco(
             gray,
             board,
         )
-        if charuco_ids is None or charuco_corners is None or int(retval) < 4:
+        if charuco_ids is None or charuco_corners is None or int(retval) < 6:
             rejected_images.append({"path": str(path), "reason": "too_few_charuco_corners"})
+            continue
+        if board.checkCharucoCornersCollinear(charuco_ids):
+            rejected_images.append({"path": str(path), "reason": "collinear_corners"})
             continue
 
         all_corners.append(charuco_corners)
@@ -113,14 +124,32 @@ def calibrate_color_camera_charuco(
     if image_size is None:
         raise RuntimeError("No readable calibration image size was found.")
 
+    if holdout_count < 0 or len(used_images) - holdout_count < 10:
+        raise ValueError("Holdout split must leave at least 10 training images.")
+    held_indices = set(np.linspace(0, len(used_images)-1, holdout_count, dtype=int).tolist())
+    train_indices = [i for i in range(len(used_images)) if i not in held_indices]
+
     rms, camera_matrix, dist_coeffs, _, _ = cv2.aruco.calibrateCameraCharuco(
-        all_corners,
-        all_ids,
+        [all_corners[i] for i in train_indices],
+        [all_ids[i] for i in train_indices],
         board,
         image_size,
         None,
         None,
     )
+    if not np.isfinite(rms) or not np.isfinite(camera_matrix).all() or not np.isfinite(dist_coeffs).all() or min(camera_matrix[0, 0], camera_matrix[1, 1]) <= 0:
+        raise RuntimeError("Calibration returned invalid numerical parameters.")
+    heldout = []
+    for i in sorted(held_indices):
+        objects = board.getChessboardCorners()[all_ids[i].flatten()]
+        ok, rvec, tvec = cv2.solvePnP(objects, all_corners[i], camera_matrix, dist_coeffs)
+        if not ok:
+            raise RuntimeError(f"Held-out pose estimation failed: {used_images[i]}")
+        projected, _ = cv2.projectPoints(objects, rvec, tvec, camera_matrix, dist_coeffs)
+        error = np.sqrt(np.mean(np.sum((projected.reshape(-1, 2)-all_corners[i].reshape(-1, 2))**2, axis=1)))
+        if not np.isfinite(error):
+            raise RuntimeError("Nonfinite held-out reprojection error.")
+        heldout.append({"path": used_images[i], "rms_px": float(error)})
     if undistort_previews is not None:
         _write_undistort_previews(used_images, camera_matrix, dist_coeffs, undistort_previews)
 
@@ -135,15 +164,19 @@ def calibrate_color_camera_charuco(
         "distortion": np.asarray(dist_coeffs).reshape(-1).tolist(),
         "rms_reprojection_error_px": float(rms),
         "image_size": [int(image_size[0]), int(image_size[1])],
-        "num_images_used": len(used_images),
+        "num_images_used": len(train_indices),
+        "num_images_detected": len(used_images),
+        "heldout_views": heldout,
+        "heldout_mean_rms_px": float(np.mean([v["rms_px"] for v in heldout])) if heldout else None,
+        "validation_scope": "Held-out intrinsics reprojection diagnostic; pose refitted per view. Not metric ground truth or depth calibration.",
         "num_images_rejected": len(rejected_images),
-        "used_images": used_images,
+        "used_images": [used_images[i] for i in train_indices],
         "rejected_images": rejected_images,
         "warnings": warnings,
     }
     output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(f"RMS reprojection error: {float(rms):.4f} px")
-    print(f"Images used/rejected: {len(used_images)}/{len(rejected_images)}")
+    print(f"Images train/held-out/rejected: {len(train_indices)}/{len(heldout)}/{len(rejected_images)}")
     if undistort_previews is not None:
         print(f"Undistortion previews: {undistort_previews}")
     return output

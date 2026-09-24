@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Calibrate RealSense color camera intrinsics using ChArUco images.")
+    parser.add_argument("--holdout-count", type=int, default=0, help="Number of views excluded from intrinsic fitting.")
     parser.add_argument(
         "--image-dir",
         default=ROOT / "data" / "calibration_images" / "d435i_color_charuco",
@@ -50,6 +51,7 @@ def main() -> int:
             args.output,
             args.preview_dir,
             args.undistort_preview_dir,
+            holdout_count=args.holdout_count,
         )
         print(f"Wrote {output}")
         return 0
