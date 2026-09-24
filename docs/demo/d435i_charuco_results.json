@@ -1,0 +1,52 @@
+{
+  "demo": "D435i ChArUco real-device session",
+  "date": "2026-09-24",
+  "device_model": "Intel RealSense D435i",
+  "image_size": [
+    1280,
+    720
+  ],
+  "board": {
+    "squares_x": 5,
+    "squares_y": 7,
+    "dictionary": "DICT_5X5_100",
+    "square_size_mm": 24,
+    "marker_size_mm": 12
+  },
+  "accepted_views": 25,
+  "training_views": 20,
+  "heldout_views": 5,
+  "training_rms_px": 0.26294444169524106,
+  "heldout_candidate_mean_rms_px": 0.17941391468048096,
+  "heldout_factory_mean_rms_px": 0.3058497652411461,
+  "per_view": [
+    {
+      "image": "view_0000.png",
+      "candidate_rms_px": 0.14631402492523193,
+      "factory_rms_px": 0.12870371341705322
+    },
+    {
+      "image": "view_0006.png",
+      "candidate_rms_px": 0.058880336582660675,
+      "factory_rms_px": 0.07028741389513016
+    },
+    {
+      "image": "view_0012.png",
+      "candidate_rms_px": 0.12302844971418381,
+      "factory_rms_px": 0.13981182873249054
+    },
+    {
+      "image": "view_0018.png",
+      "candidate_rms_px": 0.3188183903694153,
+      "factory_rms_px": 0.844032347202301
+    },
+    {
+      "image": "view_0024.png",
+      "candidate_rms_px": 0.2500283718109131,
+      "factory_rms_px": 0.3464135229587555
+    }
+  ],
+  "scope": "Held-out intrinsics reprojection diagnostic; pose refitted per view. Not metric ground truth or depth calibration.",
+  "firmware_modified": false,
+  "status": "calibration_candidate_needs_validation"
+}

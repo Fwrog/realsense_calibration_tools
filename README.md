@@ -3,6 +3,48 @@
 A marker-guided toolkit for RealSense D435i calibration workflows: live inspection,
 automatic diverse-view capture, software color calibration, and local RGB-D diagnostics.
 
+## 📷 Real-device demo · 实机展示
+
+2026-09-24，使用实际连接的 **RealSense D435i** 和 **5 × 7 ChArUco 棋盘**完成
+自动采集与彩色内参求解。图像分辨率为 **1280 × 720**；实测方格 **24 mm**、
+marker **12 mm**，字典为 `DICT_5X5_100`。完整棋盘的 **17 个 marker / 24 个内角点**均成功识别。
+
+```text
+实机画面 → ChArUco 检测 → 清晰度 / 稳定性 / 姿态去重
+         → 25 个采集视角 → 20 张拟合 + 5 张留出 → 本地报告
+```
+
+| 本次实测指标 | 结果 |
+|---|---:|
+| 自动保存的不同视角 | 25 |
+| 内参拟合 / 留出检查 | 20 / 5 |
+| 拟合重投影 RMS | 0.263 px |
+| 留出视角平均 RMS：标定候选 | **0.179 px** |
+| 同组留出视角平均 RMS：工厂内参 | 0.306 px |
+
+<details>
+<summary>展开查看 5 个留出视角的逐项对比</summary>
+
+| 留出图像 | 工厂内参 RMS (px) | 标定候选 RMS (px) |
+|---|---:|---:|
+| view_0000 | 0.129 | 0.146 |
+| view_0006 | 0.070 | 0.059 |
+| view_0012 | 0.140 | 0.123 |
+| view_0018 | 0.844 | 0.319 |
+| view_0024 | 0.346 | 0.250 |
+
+候选结果在 4/5 个留出视角上误差较低，并非每个视角都改善。
+表中平均值为逐视角 RMS 的算术平均，非所有角点合并后的 RMS。
+
+</details>
+
+**结果边界：**这是一次真实采集的示例，不是通用性能基准。留出图像未参与该候选内参拟合，
+但每个视角的位姿仍分别拟合；像素重投影误差不等于毫米级测量精度，也不代表深度模块已校准。
+相机固件与工厂参数未被修改，结果状态保留为 `calibration_candidate_needs_validation`。
+
+[查看脱敏 Demo 数据（JSON）](docs/demo/d435i_charuco_results.json)。
+公开内容仅包含汇总指标与匿名视角编号，不包含序列号、本机路径、现场照片或原始深度。
+
 ## 自动标定 · Quick start
 
 **自动化的是检测、筛图、求解和报告；不同视角仍需人工移动相机或标定板。**
